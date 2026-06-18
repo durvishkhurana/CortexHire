@@ -1,0 +1,45 @@
+# submission_metadata.yaml — India Runs Hackathon (Track 1)
+# Fill before portal upload.
+
+team:
+  name: TODO
+  track: "Track 1 — Intelligent Candidate Ranking"
+  members:
+    - name: TODO
+      role: TODO
+      email: TODO
+  contact_email: TODO
+
+submission:
+  reproduce_command: "python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv"
+  validate_command: "python validate_submission.py submission.csv"
+  python_version: "3.11"
+  dependencies: requirements.txt
+  output_csv: submission.csv
+  sandbox_url: TODO
+
+ai_tools_declaration:
+  used: true
+  coding_assistants:
+    - "IDE coding assistant (implementation and tests)"
+  offline_llm_usage:
+    teacher_labeling: "Deterministic pseudo-teacher (rubric + features); see docs/decisions.md"
+    head_audit: "Pairwise pseudo-audit folded into retraining (offline/05_head_audit_retrain.py)"
+    reasoning_generation: "Fact-sheet composer with automated verifier (offline/06_reasoning.py)"
+  online_llm_at_ranking_time: false
+  notes: >
+    Embeddings, reranking, labeling, training, and reasoning are computed offline
+    into artifacts/. rank.py is a CPU-only replay with no network access.
+
+artifacts:
+  shipped_via: "Git LFS"
+  contents:
+    - artifacts/features.parquet
+    - artifacts/model/
+    - artifacts/reasoning.json
+    - artifacts/founding_years.csv
+
+reproducibility:
+  deterministic: true
+  seeds_pinned: true
+  recency_reference: "max(last_active_date) across the pool"

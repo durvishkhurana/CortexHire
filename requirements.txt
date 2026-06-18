@@ -1,0 +1,30 @@
+# India Runs Hackathon — Track 1 · pinned, CPU-only dependencies
+#
+# Determinism requirement: every dependency is pinned with `==`.
+# These are the versions verified installed and tested on this repo
+# (Python 3.10/3.11, CPU-only wheels — no CUDA / no GPU packages here).
+#
+# rank.py (the <=5 min CPU/no-network replay) only needs the REPLAY block.
+# The OFFLINE-ONLY block holds packages used by offline/*.py (feature build,
+# BM25, etc.). GPU/LLM packages (torch, sentence-transformers, transformers)
+# are intentionally NOT listed: that work is offline and out of scope for the
+# committed replay environment. Add them in a separate offline requirements
+# file when the GPU phase is unblocked, so the replay image stays slim.
+
+# --- REPLAY (used by rank.py) ------------------------------------------------
+orjson==3.11.9            # streaming JSONL parse, projecting only needed fields
+numpy==1.26.4             # numerics
+pandas==2.2.2             # feature-store frames / CSV IO
+polars==1.41.2            # lazy/memory-mapped parquet join (replay feature join)
+pyarrow==24.0.0           # parquet engine backing polars/pandas
+lightgbm==4.6.0           # student model (CPU); monotone constraints
+scikit-learn==1.5.1       # IsolationForest anomaly guard
+PyYAML==6.0.3             # submission_metadata.yaml handling
+
+# --- OFFLINE-ONLY (used by offline/*.py, never imported by rank.py) ----------
+rank-bm25==0.2.2          # BM25 over career-text document (offline text scores)
+
+# --- DEV / TEST (optional; not required by rank.py) --------------------------
+pytest==8.3.3
+# ruff and black are used for lint/format but are not import-time deps:
+# pip install ruff==0.6.9 black==24.8.0

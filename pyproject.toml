@@ -1,0 +1,30 @@
+# Tooling config for the India Runs Hackathon Track 1 repo.
+# (Dependencies are pinned in requirements.txt, not here — the replay image
+#  installs from requirements.txt.)
+
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+# validate_submission.py is the organizer's file, vendored verbatim — do not
+# lint/format it so it stays byte-identical to the grader's Stage-1 validator.
+extend-exclude = ["validate_submission.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+ignore = [
+    "B905",   # zip(strict=...) kept off for clarity
+    "UP038",  # isinstance(x, (int, float)) is clearer than int | float
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]  # allow long literal strings in test fixtures
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["ignore::DeprecationWarning"]
