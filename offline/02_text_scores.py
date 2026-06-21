@@ -88,6 +88,30 @@ def _simple_tokenize(text: str) -> list[str]:
     return text.lower().split()
 
 
+def compute_lexical_dense_scores(
+    documents: list[str], queries: list[str]
+) -> list[float]:
+    """TF-IDF max cosine vs JD query variants — no network, no GPU, no API."""
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    import numpy as np
+
+    if not documents:
+        return []
+    vec = TfidfVectorizer(
+        max_features=80_000,
+        ngram_range=(1, 2),
+        strip_accents="unicode",
+        sublinear_tf=True,
+    )
+    corpus = list(queries) + documents
+    matrix = vec.fit_transform(corpus)
+    q = matrix[: len(queries)]
+    d = matrix[len(queries) :]
+    sims = cosine_similarity(d, q)
+    return np.max(sims, axis=1).astype("float32").tolist()
+
+
 def compute_bm25(documents: list[str], queries: list[str]) -> list[float]:
     """BM25 score of each document vs the union of JD-intent queries (offline).
 
@@ -263,18 +287,22 @@ def _write_scores_into_features(
     candidate_ids: list[str],
     cols: dict[str, list[float]],
 ) -> None:
-    import polars as pl
+    import pandas as pd
 
     if not os.path.exists(features_path):
         raise FileNotFoundError(
             f"{features_path} missing. Run offline/01_build_features.py first."
         )
 
-    df_scores = pl.DataFrame({F.CANDIDATE_ID: candidate_ids, **cols})
-    base = pl.scan_parquet(features_path)
-    merged = base.join(df_scores.lazy(), on=F.CANDIDATE_ID, how="left")
-    # Write deterministically (single file parquet).
-    merged.collect(streaming=True).write_parquet(out_path)
+    base = pd.read_parquet(features_path)
+    scores = pd.DataFrame({F.CANDIDATE_ID: candidate_ids, **cols})
+    base[F.CANDIDATE_ID] = base[F.CANDIDATE_ID].astype(str)
+    scores[F.CANDIDATE_ID] = scores[F.CANDIDATE_ID].astype(str)
+    for col in cols:
+        if col in base.columns:
+            base = base.drop(columns=[col])
+    merged = base.merge(scores, on=F.CANDIDATE_ID, how="left")
+    merged.to_parquet(out_path, index=False)
 
 
 def main() -> int:
@@ -292,10 +320,22 @@ def main() -> int:
     ap.add_argument(
         "--mode",
         default="step5",
-        choices=("step5", "bm25", "dense", "step6_reranker"),
-        help="step5 writes bm25+dense+fusion; step6_reranker writes reranker_score",
+        choices=("step5", "bm25", "dense", "step6_reranker", "step6_proxy"),
+        help="step5 writes bm25+dense+fusion; step6_reranker HF; step6_proxy BM25-vs-JD",
     )
     ap.add_argument("--alpha", type=float, default=0.5, help="fusion alpha for dense")
+    ap.add_argument(
+        "--dense-backend",
+        default="lexical",
+        choices=("lexical", "hf"),
+        help="lexical = TF-IDF (no API/download); hf = HuggingFace embedding model",
+    )
+    ap.add_argument(
+        "--reranker-backend",
+        default="proxy",
+        choices=("proxy", "hf"),
+        help="proxy = BM25 vs full JD text; hf = Qwen reranker (needs download)",
+    )
     args = ap.parse_args()
 
     if not os.path.exists(args.candidates):
@@ -326,21 +366,29 @@ def main() -> int:
         )
 
     if args.mode in {"dense", "step5"}:
-        dense = compute_dense_scores(
-            docs,
-            JD_QUERY_VARIANTS,
-            model_id=args.embedding_model,
-            device=args.device,
-            batch_size=args.batch_size,
-            max_length=args.max_length,
-            hf_home=args.hf_home,
-        )
+        if args.dense_backend == "lexical":
+            dense = compute_lexical_dense_scores(docs, JD_QUERY_VARIANTS)
+            log.info(
+                "computed lexical dense (TF-IDF) for %d docs (max=%.3f)",
+                len(dense),
+                max(dense) if dense else 0,
+            )
+        else:
+            dense = compute_dense_scores(
+                docs,
+                JD_QUERY_VARIANTS,
+                model_id=args.embedding_model,
+                device=args.device,
+                batch_size=args.batch_size,
+                max_length=args.max_length,
+                hf_home=args.hf_home,
+            )
+            log.info(
+                "computed HF dense scores for %d docs (max=%.3f)",
+                len(dense),
+                max(dense) if dense else 0,
+            )
         cols["dense_score"] = dense
-        log.info(
-            "computed dense scores for %d docs (max=%.3f)",
-            len(dense),
-            max(dense) if dense else 0,
-        )
 
     if args.mode == "step5":
         if "bm25_score" not in cols or "dense_score" not in cols:
@@ -352,20 +400,36 @@ def main() -> int:
         log.info("computed fusion_score (alpha=%.2f)", args.alpha)
 
     if args.mode == "step6_reranker":
-        rr = compute_reranker_scores(
-            docs,
-            JD_TEXT,
-            model_id=args.reranker_model,
-            device=args.device,
-            batch_size=max(1, args.batch_size),
-            max_length=args.max_length,
-            hf_home=args.hf_home,
-        )
+        if args.reranker_backend == "proxy":
+            rr = compute_bm25(docs, [JD_TEXT])
+            log.info(
+                "computed proxy reranker (BM25 vs JD) for %d docs (max=%.3f)",
+                len(rr),
+                max(rr) if rr else 0,
+            )
+        else:
+            rr = compute_reranker_scores(
+                docs,
+                JD_TEXT,
+                model_id=args.reranker_model,
+                device=args.device,
+                batch_size=max(1, args.batch_size),
+                max_length=args.max_length,
+                hf_home=args.hf_home,
+            )
+            log.info(
+                "computed HF reranker_score for %d docs (max=%.3f)",
+                len(rr),
+                max(rr) if rr else 0,
+            )
+        cols["reranker_score"] = rr
+
+    if args.mode == "step6_proxy":
+        rr = compute_bm25(docs, [JD_TEXT])
         cols["reranker_score"] = rr
         log.info(
-            "computed reranker_score for %d docs (max=%.3f)",
+            "step6_proxy: reranker_score from BM25 vs JD (%d docs)",
             len(rr),
-            max(rr) if rr else 0,
         )
 
     if not cols:

@@ -49,7 +49,11 @@ def train_heads(X, y_score, y_tier, feature_names, artifacts_dir: str) -> dict:
     for head in (student_model.HEAD_POINTWISE, student_model.HEAD_LAMBDARANK):
         log.info("training head=%s", head)
         y = y_score if head == student_model.HEAD_POINTWISE else y_tier
-        group = [len(y)] if head == student_model.HEAD_LAMBDARANK else None
+        group = (
+            student_model.lambdarank_group_sizes(len(y))
+            if head == student_model.HEAD_LAMBDARANK
+            else None
+        )
         ens = student_model.train_ensemble(
             X, y, feature_names, head=head, group=group
         )
@@ -116,6 +120,18 @@ def select_winner(artifacts_dir: str, harness: dict) -> str:
             shutil.rmtree(dst)
         shutil.copytree(src, dst)
         meta["selected_head"] = student_model.HEAD_LAMBDARANK
+    elif winner == student_model.HEAD_POINTWISE:
+        # Prefer lambdarank for final ranking when harness is teacher-circular.
+        lr = os.path.join(artifacts_dir, "model_lambdarank")
+        if os.path.isdir(lr):
+            import shutil
+
+            dst = os.path.join(artifacts_dir, "model")
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            shutil.copytree(lr, dst)
+            meta["selected_head"] = student_model.HEAD_LAMBDARANK
+            meta["note"] = "deployed lambdarank (harness favored pointwise on teacher labels)"
     with open(os.path.join(artifacts_dir, "model", "selection.json"), "w") as fh:
         json.dump(meta, fh, indent=2)
     return winner

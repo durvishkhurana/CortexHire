@@ -1,4 +1,4 @@
-# DECISIONS.md — Defend-Your-Work Log
+# Defend-your-work log (`docs/decisions.md`)
 
 The Stage-5 interview script. One entry per non-obvious choice: **what** we decided, **why**, **what we rejected**, and the **evidence**. Keep it honest — Stage 4/5 penalize claims that contradict the code. Update it as you make each decision, not at the end.
 
@@ -16,7 +16,7 @@ The Stage-5 interview script. One entry per non-obvious choice: **what** we deci
 - **Decision:** frontier-LLM teacher labels 12–20K on a reconstructed 0–5 rubric → LightGBM student (monotone constraints, seed ensemble).
 - **Why:** matches the metric (`lambdarank`), explainable (feature importances), fast at 100K; the LANTERN/ConFit-v3 pattern from the field.
 - **Rejected:** ConFit-style encoder fine-tuning (collapse/overfit risk on ~10K labels, harder to defend); hand-tuned behavioral multiplier (guesses the organizers' trade-off).
-- **Evidence:** harness NDCG@10 _tbd_; importance plot; arXiv 2604.21264 (GBT beats deep matchers).
+- **Evidence:** harness composite **0.852** (pointwise winner on teacher tiers); lambdarank **0.811** deployed for replay — see [`RESULTS.md`](./RESULTS.md); feature importances in `artifacts/model/`.
 
 ### D3 — Rubric reconstructed from the organizers' own docx files, 0–5 scale
 - **Decision:** teacher prompt built near-verbatim from `job_description.docx` / `redrob_signals_doc.docx` / `submission_spec.docx`, on the 0–5 tier scale.
@@ -31,7 +31,7 @@ The Stage-5 interview script. One entry per non-obvious choice: **what** we deci
 ### D5 — Head audit folded into retraining (no override table)
 - **Decision:** multi-pass LLM audit of top-300 → labeled pairs → retrain student → verify head agreement.
 - **Why:** a cached override is a memorized answer for the rows worth 50% of the score — indefensible. Retraining keeps the reproduce command a *model*.
-- **Evidence:** post-retrain head agrees with audit on _tbd_%; ConFit-v3 multi-pass finding.
+- **Evidence:** post-retrain lambdarank restored to `artifacts/model/`; **56** `audit_flags.json` (latest run); see [`RESULTS.md`](./RESULTS.md).
 
 ### D6 — Grounded-then-verified reasoning, cached
 - **Decision:** fact-sheet → LLM gen → automated verifier → cache by `candidate_id`; composer fallback in `rank.py`.
@@ -41,7 +41,7 @@ The Stage-5 interview script. One entry per non-obvious choice: **what** we deci
 ### D7 — Validation by TREC-style pooled judging
 - **Decision:** label the union of all variants' top-100 (+~50 random); select models on that pool.
 - **Why:** a "spectrum" sample has ~zero overlap with any system's top-100 → noise. With no leaderboard, this is the only valid feedback loop.
-- **Evidence:** pool size _tbd_ unique; per-variant NDCG@10 table.
+- **Evidence:** pool size **338** unique (latest harness); per-variant table in `artifacts/harness_results.json` and [`RESULTS.md`](./RESULTS.md).
 
 ---
 
@@ -292,3 +292,15 @@ Additional forensics ground truth recorded (STEP 1):
   🛑 blocked** on the human-provided `data/`/`.docx` files and are NOT marked
   done. `offline/00`/`02`/`03`/`05` are STOP-fenced skeletons; `offline/01`/`04`
   hold real logic gated on the upstream data/labels; `offline/06` runs today.
+
+### 2026-06-20 / 2026-06-21 — No-API pipeline complete + docs/results freeze
+
+- **Text scores fixed:** Polars join in `offline/02_text_scores.py` left BM25/dense/reranker **all-NaN**; replaced with **pandas merge**. Added **`--dense-backend lexical`** (sklearn TF-IDF, no HuggingFace) and **`step6_proxy`** reranker (BM25 vs full JD text).
+- **`scripts/run_pipeline_no_api.py`:** single entry for `01`→`06` + `rank.py` + validator.
+- **LightGBM lambdarank:** query groups capped at **5K** rows (`lambdarank_group_sizes`) — fixes >10K single-group fatal error when labeling pool ~10K.
+- **Labels:** `--keep-inconsistent` → **9,989** teacher labels (pool **9,989** after text scores populated).
+- **Harness (teacher tiers, pool=338):** rules_v0 **0.713**, lambdarank **0.811**, pointwise **0.852** (winner); **deploy lambdarank** for replay anyway (`selection.json` note).
+- **Audit:** `build_audit_flags` + `audit_flags.json` (**56** ids latest); **110** pairwise label adjustments in `offline/05`.
+- **Replay:** **~52 s** / 100K, **251** excluded, validator **PASS**, honeypot top-110 **0** hard.
+- **Tests:** **119** pytest passed.
+- **Canonical metrics doc:** [`RESULTS.md`](./RESULTS.md). Supersedes 2026-06-18 note on degenerate `dense_score`.

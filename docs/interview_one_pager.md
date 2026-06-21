@@ -1,32 +1,29 @@
 # Stage 5 — One-pager (defend your work)
 
 ## What we built
-Offline-first ranking for one fixed Senior AI Engineer JD over 100K profiles: heavy work (features, BM25/dense/reranker scores, pseudo-teacher labels, LightGBM student, reasoning cache) lives in `offline/*.py` → `artifacts/`. `rank.py` is a **deterministic replay**: two-pass streaming `orjson`, live honeypot checks, parquet join, ensemble predict, sort, reasoning, self-validate — CPU-only, no network.
+Offline-first ranking for one fixed Senior AI Engineer JD over **100K** profiles: features, **BM25 + TF-IDF lexical dense + proxy reranker** (no hosted API), pseudo-teacher labels, LightGBM **lambdarank** student, verified reasoning cache → `artifacts/`. `rank.py` **replays** in **~52 s** on CPU: two-pass streaming, live honeypot checks, parquet join, predict, sort, CSV + self-validate.
 
 ## Why this architecture
-JD + pool are fixed ⇒ every score is precomputable. Matches organizer constraints (≤5 min, ≤16 GB, no GPU/API at rank time) and the LANTERN / ConFit-v3 distillation pattern (teacher → small student).
+JD + pool are fixed ⇒ scores are precomputable. Fits **≤5 min / 16 GB / CPU / no network** at rank time. Teacher → small student matches common distillation practice and is defensible in interview.
 
 ## Teacher (offline, no paid API)
-Frontier LLM labeling was replaced with a **deterministic pseudo-teacher** (rubric + feature evidence) on an ~11K labeling pool; inconsistent pairs dropped. Documented in `DECISIONS.md` — honest limitation vs a true frontier teacher.
+**Deterministic pseudo-teacher** on a **~10K** high-recall labeling pool (**9,989** labels in latest run; `--keep-inconsistent`). Pilot self-consistency **~32%** (primary vs strict) — documented in [`decisions.md`](./decisions.md). Honest ceiling vs frontier LLM; see [`RESULTS.md`](./RESULTS.md).
 
 ## Student
-LightGBM **lambdarank** + pointwise heads, monotone constraints on response rate, interview completion, notice period, recency; 3–5 seed ensemble. **Pooled harness** on rules + both heads picked **lambdarank** (see `artifacts/harness_results.json`).
+LightGBM **lambdarank** (deployed) + pointwise (harness comparison), monotone behavioral constraints, 5-seed ensemble. Pooled harness **winner = pointwise** on teacher tiers (composite **0.852**); we still **ship lambdarank** for final ranking (`artifacts/model/selection.json`).
 
 ## Honeypots
-Single hard rule violation excludes; triple-guard = hard ∨ audit ∨ (anomaly ∧ soft corroboration). Founding-year table for tenure vs company age.
+Single hard violation excludes; triple-guard = hard ∨ **audit_flags** ∨ (anomaly ∧ soft). Latest run: **0** hard honeypots in top **110**; **251** total exclusions at rank time.
 
 ## Validation
-TREC-style pooled judging over variant top-100s + random floor — not a spectrum sample. `validate_submission.py` matches organizer verbatim.
+TREC-style pooled harness (**338** ids in latest run). `validate_submission.py` byte-identical to organizer bundle. **119** pytest tests green.
 
 ## Fairness / rubric
-0–5 tiers reconstructed from organizer docx; instructed to weight career evidence and signals, not keyword stuffing; institution prestige only via `education.tier` field.
-
-## AI tools
-Cursor / IDE assistance during implementation; see submission_metadata.yaml.
+0–5 tiers from organizer docx; career evidence over keywords; prestige only via `education.tier`.
 
 ## Reproduce
 ```bash
 pip install -r requirements.txt
-python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv
+python scripts/run_pipeline_no_api.py --candidates data/candidates.jsonl --out submission.csv
 ```
-Offline rebuild: see `README.md` and `offline/01`–`06`.
+Numbers: [`RESULTS.md`](./RESULTS.md).

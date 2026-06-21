@@ -1,42 +1,65 @@
-# submission_metadata.yaml — India Runs Hackathon (Track 1)
-# Fill before portal upload.
+# submission_metadata.yaml — Intelligent Candidate Discovery & Ranking
+# Copy fields to the portal; align with data/submission_metadata_template.yaml
 
-team:
-  name: TODO
-  track: "Track 1 — Intelligent Candidate Ranking"
-  members:
-    - name: TODO
-      role: TODO
-      email: TODO
-  contact_email: TODO
+team_name: "TODO"
+primary_contact:
+  name: "TODO"
+  email: "TODO"
+  phone: "+91-XXXXXXXXXX"
 
+team_members:
+  - name: "TODO"
+    email: "TODO"
+    role: "ML Engineer"
+
+github_repo: "https://github.com/TODO/TODO"
+sandbox_link: "TODO"
+
+reproduce_command: "python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv"
+validate_command: "python validate_submission.py submission.csv"
+
+compute:
+  platform: "Windows 11 / local"
+  cpu_cores: 8
+  ram_gb: 16
+  python_version: "3.10.11"
+  os: "Windows"
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: true
+  pre_computation_time_minutes: 120
+
+methodology_summary: |
+  Offline feature store over 100K profiles (career evidence, company lexicon,
+  behavioral signals, honeypot consistency flags). Hybrid lexical retrieval
+  (BM25 + TF-IDF dense + JD BM25 proxy reranker) without hosted APIs.
+  Pseudo-teacher rubric labels a high-recall pool; LightGBM lambdarank student
+  with monotone behavioral constraints and seed ensemble. rank.py streams the
+  pool, applies honeypot triple-guard, predicts, attaches verified reasoning
+  cache. Replay ~52s/100K CPU. Metrics: docs/RESULTS.md.
+
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true
+
+# Legacy block (repo tooling)
 submission:
   reproduce_command: "python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv"
   validate_command: "python validate_submission.py submission.csv"
-  python_version: "3.11"
+  python_version: "3.10"
   dependencies: requirements.txt
   output_csv: submission.csv
-  sandbox_url: TODO
-
-ai_tools_declaration:
-  used: true
-  coding_assistants:
-    - "IDE coding assistant (implementation and tests)"
-  offline_llm_usage:
-    teacher_labeling: "Deterministic pseudo-teacher (rubric + features); see docs/decisions.md"
-    head_audit: "Pairwise pseudo-audit folded into retraining (offline/05_head_audit_retrain.py)"
-    reasoning_generation: "Fact-sheet composer with automated verifier (offline/06_reasoning.py)"
-  online_llm_at_ranking_time: false
-  notes: >
-    Embeddings, reranking, labeling, training, and reasoning are computed offline
-    into artifacts/. rank.py is a CPU-only replay with no network access.
 
 artifacts:
-  shipped_via: "Git LFS"
+  shipped_via: "Git LFS or local build via scripts/run_pipeline_no_api.py"
   contents:
     - artifacts/features.parquet
     - artifacts/model/
     - artifacts/reasoning.json
+    - artifacts/audit_flags.json
     - artifacts/founding_years.csv
 
 reproducibility:

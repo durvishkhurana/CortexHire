@@ -28,6 +28,23 @@ from .features import MONOTONE_CONSTRAINTS
 HEAD_LAMBDARANK = "lambdarank"
 HEAD_POINTWISE = "pointwise"
 DEFAULT_SEEDS = (13, 29, 41, 57, 73)
+# LightGBM lambdarank: max documents per query group (library limit is 10_000).
+LAMBDARANK_MAX_GROUP = 5000
+
+
+def lambdarank_group_sizes(n: int, *, max_per_group: int = LAMBDARANK_MAX_GROUP) -> list[int]:
+    """Split n training rows into query groups for lambdarank."""
+    if n <= 0:
+        return []
+    if n <= max_per_group:
+        return [n]
+    sizes: list[int] = []
+    rem = n
+    while rem > 0:
+        g = min(max_per_group, rem)
+        sizes.append(g)
+        rem -= g
+    return sizes
 
 
 def build_monotone_vector(
@@ -186,8 +203,10 @@ def train_ensemble(
 
     sample_weight = None
     if head == HEAD_LAMBDARANK:
-        if group is None:
-            group = [len(y)]  # the whole pool is one query group
+        if group is None or (
+            len(group) == 1 and group[0] > LAMBDARANK_MAX_GROUP
+        ):
+            group = lambdarank_group_sizes(len(y))
     elif head == HEAD_POINTWISE and top_weighted:
         # weight proportional to (normalized) relevance gain, floored at 1.
         gain = y - y.min()

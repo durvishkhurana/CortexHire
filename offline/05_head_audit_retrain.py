@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 def pseudo_pairwise_audit(
     ranked_ids: list[str],
-    teacher: dict[str, float],
+    teacher: dict[str, int],
     *,
     passes: int = 2,
 ) -> list[tuple[str, str, int]]:
@@ -37,9 +37,51 @@ def pseudo_pairwise_audit(
         for i in range(min(300, len(ranked_ids)) - 1):
             a, b = ranked_ids[i], ranked_ids[i + 1]
             ta, tb = teacher.get(a, 0), teacher.get(b, 0)
-            if ta + 1 < tb:  # student ranks a above b but teacher strongly prefers b
+            if ta + 1 < tb:
                 pairs.append((b, a, int(tb - ta)))
     return pairs
+
+
+def build_audit_flags(
+    feats: pd.DataFrame,
+    ranked_ids: list[str],
+    teacher: dict[str, int],
+    *,
+    top_n: int = 500,
+) -> set[str]:
+    """Offline contradiction hunt → candidate_ids for rank.py triple-guard audit leg."""
+    flags: set[str] = set()
+    idx = feats.set_index(F.CANDIDATE_ID)
+    for cid in ranked_ids[:top_n]:
+        if cid not in idx.index:
+            continue
+        row = idx.loc[cid]
+        if float(row.get("n_hard_flags", 0) or 0) >= 1.0:
+            flags.add(str(cid))
+            continue
+        tier = teacher.get(str(cid), -1)
+        if tier == 0:
+            flags.add(str(cid))
+            continue
+        if float(row.get("claimed_unverified_ratio", 0) or 0) > 1.2:
+            flags.add(str(cid))
+        if float(row.get("n_soft_flags", 0) or 0) >= 3.0:
+            flags.add(str(cid))
+    # Student order vs teacher: demote head when a lower-ranked id has much higher tier.
+    for i in range(min(top_n, len(ranked_ids)) - 1):
+        a, b = ranked_ids[i], ranked_ids[i + 1]
+        ta, tb = teacher.get(a, 0), teacher.get(b, 0)
+        if tb >= ta + 2:
+            flags.add(str(a))
+    return flags
+
+
+def write_audit_flags(artifacts_dir: str, flags: set[str]) -> str:
+    path = os.path.join(artifacts_dir, "audit_flags.json")
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(sorted(flags), fh, indent=2)
+    log.info("wrote %d audit flags -> %s", len(flags), path)
+    return path
 
 
 def augment_labels(
@@ -80,6 +122,9 @@ def main() -> int:
     teacher = dict(zip(labels[F.CANDIDATE_ID].astype(str), labels["tier"].astype(int)))
     pairs = pseudo_pairwise_audit(top300, teacher, passes=args.passes)
     log.info("audit pass: %d pairwise adjustments from %d passes", len(pairs), args.passes)
+
+    audit_ids = build_audit_flags(feats, top300, teacher)
+    write_audit_flags(args.artifacts, audit_ids)
 
     gold = [{"preferred": hi, "demoted": lo, "delta": d} for hi, lo, d in pairs[:50]]
     with open(os.path.join(args.artifacts, "audit_disagreements.json"), "w") as fh:

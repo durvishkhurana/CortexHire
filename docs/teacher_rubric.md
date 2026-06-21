@@ -1,5 +1,7 @@
 # Teacher Rubric — Senior AI Engineer (Redrob, Founding Team)
 
+**Implementation:** labels generated offline by `src/pseudo_teacher.py` (no hosted LLM). **Latest label/run stats:** [`RESULTS.md`](./RESULTS.md).
+
 **Purpose.** This is the labeling instruction handed to the LLM teacher (STEP 8/9).
 It is reconstructed *near-verbatim* from the organizers' own materials —
 `data/job_description.docx` (`_txt_job_description.txt`), `data/submission_spec.docx`

@@ -111,6 +111,11 @@ def main() -> int:
         "--features", default=os.path.join("artifacts", "features.parquet")
     )
     ap.add_argument("--step", default="all", choices=["7", "8", "9", "all"])
+    ap.add_argument(
+        "--keep-inconsistent",
+        action="store_true",
+        help="label all pool ids (do not drop primary/strict disagreements)",
+    )
     args = ap.parse_args()
 
     if not os.path.exists(args.features):
@@ -138,7 +143,12 @@ def main() -> int:
             json.dump(stats, fh, indent=2)
 
     if args.step in ("9", "all"):
-        run_full_labeling(feats, pool_ids, args.artifacts)
+        run_full_labeling(
+            feats,
+            pool_ids,
+            args.artifacts,
+            drop_inconsistent=not args.keep_inconsistent,
+        )
     return 0
 
 

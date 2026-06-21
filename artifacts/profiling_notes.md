@@ -1,5 +1,7 @@
 # Pool profiling notes (STEP 2)
 
+> **Latest end-to-end run (features + rank + submission):** see [`../docs/RESULTS.md`](../docs/RESULTS.md) (2026-06-21).
+
 - Candidates streamed: **100,000**
 - Reference now = max(last_active_date): **2026-05-27**
 - Mean years_of_experience: **7.17**

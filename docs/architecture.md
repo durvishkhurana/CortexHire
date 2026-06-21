@@ -1,7 +1,7 @@
 # ARCHITECTURE — "Offline Intelligence, Honest Replay"
-### The consolidated winning design for India Runs Hackathon Track 1
+### Intelligent Candidate Discovery & Ranking (Redrob hackathon)
 
-This is the single source of truth for *what we build*. The step-by-step sequencing lives in [`WORKFLOW.md`](./WORKFLOW.md); the critique that justifies each choice lives in [`PANEL_REVIEW.md`](./PANEL_REVIEW.md).
+This is the engineering design for *what we build*. Official rules: [`CHALLENGE_BRIEF.md`](./CHALLENGE_BRIEF.md). Offline scripts: `offline/01`–`06`, `scripts/run_pipeline_no_api.py`. Rationale: [`decisions.md`](./decisions.md). **Benchmarks:** [`RESULTS.md`](./RESULTS.md). Roadmap: [`RECOMMENDED_APPROACH.md`](./RECOMMENDED_APPROACH.md).
 
 ---
 
@@ -137,7 +137,7 @@ stream-parse JSONL (orjson, project only needed fields)      # ~30–60 s, never
 ├── requirements.txt             # pinned versions (==), CPU-only wheels
 ├── submission_metadata.yaml     # filled from the provided template, at repo root
 ├── README.md                    # problem + solution + reproduce + results
-├── DECISIONS.md                 # the defend-your-work log (Stage 5 script)
+├── docs/decisions.md            # defend-your-work log (Stage 5 script)
 ├── src/
 │   ├── parse.py                 # streaming orjson parser → records
 │   ├── features.py              # feature store builder (offline) + live feature subset (replay)
@@ -165,7 +165,7 @@ stream-parse JSONL (orjson, project only needed fields)      # ~30–60 s, never
 
 - **Stage 3 (reproduction + honeypot):** fresh-clone dress rehearsal under `timeout 300` + Docker mem cap; triple-guard → 0 honeypots with margin 10; `rank.py` honestly parses `--candidates`.
 - **Stage 4 (manual review):** reasoning passes all 6 checks by construction; **real incremental git history** (commit the labeling/eval notebooks — they're proof, not something to hide); methodology coherent.
-- **Stage 5 (defend-your-work):** the reproduce command runs a **model, not a lookup**; the design is the **LANTERN / ConFit-v3 distillation pattern** from the organizers' own field; **monotone constraints + feature importances** are clean slides; **teacher self-consistency stats + fairness note** (teacher ignores names/prestige) pre-empt the "LLM-as-truth" caution (Soboroff). `DECISIONS.md` is the script.
+- **Stage 5 (defend-your-work):** the reproduce command runs a **model, not a lookup**; the design is the **LANTERN / ConFit-v3 distillation pattern** from the organizers' own field; **monotone constraints + feature importances** are clean slides; **teacher self-consistency stats + fairness note** (teacher ignores names/prestige) pre-empt the "LLM-as-truth" caution (Soboroff). [`decisions.md`](./decisions.md) is the script.
 
 ---
 
@@ -179,3 +179,21 @@ stream-parse JSONL (orjson, project only needed fields)      # ~30–60 s, never
 | OOM on 465 MB join | Streaming parse + lazy/memory-mapped parquet; peak < 4 GB; tested under Docker cap |
 | Stage-3 Docker has no network for artifact rebuild | Confirm in Step 1 (forensics); if no → Git LFS artifacts, repo < ~2 GB |
 | Late idea breaks the final | Submission 3 is never an experiment; frozen harness-validated version is final; submitted early |
+
+---
+
+## 8. Measured results (this repo)
+
+Full tables, tier histograms, and reproduce command: **[`RESULTS.md`](./RESULTS.md)**.
+
+| Area | Latest (2026-06-21) |
+|------|---------------------|
+| Replay `rank.py` | **~52 s** / 100K, **251** excluded, validator **PASS** |
+| Text scores | BM25 + **TF-IDF** dense + fusion + BM25-JD proxy reranker (100K non-null) |
+| Labels | **9,989** pseudo-teacher labels; pool from hybrid retrieval |
+| Deployed model | LightGBM **lambdarank** (5-seed ensemble) |
+| Harness (teacher tiers) | Pointwise composite **0.852**; lambdarank **0.811**; rules **0.713** |
+| Honeypots | **0** in top 110 (hard check) |
+| Tests | **119** pytest passed |
+
+**No-API orchestration:** `python scripts/run_pipeline_no_api.py --candidates data/candidates.jsonl --out submission.csv`
