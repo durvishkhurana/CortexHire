@@ -1,7 +1,7 @@
 # ARCHITECTURE — "Offline Intelligence, Honest Replay"
 ### Intelligent Candidate Discovery & Ranking (Redrob hackathon)
 
-This is the engineering design for *what we build*. Official rules: [`CHALLENGE_BRIEF.md`](./CHALLENGE_BRIEF.md). Offline scripts: `offline/01`–`06`, `scripts/run_pipeline_no_api.py`. Rationale: [`decisions.md`](./decisions.md). **Benchmarks:** [`RESULTS.md`](./RESULTS.md). Roadmap: [`RECOMMENDED_APPROACH.md`](./RECOMMENDED_APPROACH.md).
+This is the engineering design for *what we build*. Official rules: [`CHALLENGE_BRIEF.md`](./CHALLENGE_BRIEF.md). Offline scripts: `offline/01`–`06`, `scripts/run_pipeline_no_api.py`. Rationale: [`decisions.md`](./decisions.md). **Benchmarks:** [`RESULTS.md`](./RESULTS.md).
 
 ---
 
@@ -154,9 +154,8 @@ stream-parse JSONL (orjson, project only needed fields)      # ~30–60 s, never
 │   ├── 04_train_student.py
 │   ├── 05_head_audit_retrain.py
 │   └── 06_reasoning.py
-├── artifacts/                   # precomputed: features.parquet, model/, reasoning.json, founding_years.csv, bge-small-int8/
-├── data/                        # candidates.jsonl, sample, schema (gitignored if large; documented)
-└── notebooks/                   # labeling/eval notebooks = evidence of real engineering (commit them)
+├── artifacts/                   # precomputed: features.parquet, model/, reasoning.json, founding_years.csv
+└── data/                        # candidates.jsonl, sample, schema (gitignored if large; documented)
 ```
 
 ---

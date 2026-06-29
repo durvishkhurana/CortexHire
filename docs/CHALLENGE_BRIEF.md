@@ -122,7 +122,7 @@ Sampled rows are checked for: specific facts, JD connection, honest concerns, no
 
 ## Relation to this codebase
 
-Implementation design: [`architecture.md`](./architecture.md). Decisions log: [`decisions.md`](./decisions.md). Recommended evolution: [`RECOMMENDED_APPROACH.md`](./RECOMMENDED_APPROACH.md). **Measured runs:** [`RESULTS.md`](./RESULTS.md).
+Implementation design: [`architecture.md`](./architecture.md). Decisions log: [`decisions.md`](./decisions.md). **Measured runs:** [`RESULTS.md`](./RESULTS.md).
 
 ---
 
