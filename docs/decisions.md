@@ -12,11 +12,11 @@ The Stage-5 interview script. One entry per non-obvious choice: **what** we deci
 - **Rejected:** online cross-encoder rerank (self-imposed bottleneck; throughput risk; truncation compromises).
 - **Evidence:** Rules-v0 replay runs the **full 100K in ~35 s** (peak working set ~92 MB at feature-build) → ~9× under the 5-min / 16 GB cap; brief's own notes say "precomputed features + fast scoring".
 
-### D2 — LightGBM student distilled from an LLM teacher
-- **Decision:** frontier-LLM teacher labels 12–20K on a reconstructed 0–5 rubric → LightGBM student (monotone constraints, seed ensemble).
-- **Why:** matches the metric (`lambdarank`), explainable (feature importances), fast at 100K; the LANTERN/ConFit-v3 pattern from the field.
+### D2 — LightGBM student distilled from the rubric teacher
+- **Decision:** pseudo-teacher labels a high-recall pool on a reconstructed 0–5 rubric → LightGBM student (monotone constraints, seed ensemble).
+- **Why:** explainable feature importances, fast at 100K, and stable under the CPU/no-network replay constraint.
 - **Rejected:** ConFit-style encoder fine-tuning (collapse/overfit risk on ~10K labels, harder to defend); hand-tuned behavioral multiplier (guesses the organizers' trade-off).
-- **Evidence:** harness composite **0.852** (pointwise winner on teacher tiers); lambdarank **0.811** deployed for replay — see [`RESULTS.md`](./RESULTS.md); feature importances in `artifacts/model/`.
+- **Evidence:** harness composite **0.852** (pointwise winner on teacher tiers); lambdarank **0.811** comparison baseline — see [`RESULTS.md`](./RESULTS.md); feature importances in `artifacts/model/`.
 
 ### D3 — Rubric reconstructed from the organizers' own docx files, 0–5 scale
 - **Decision:** teacher prompt built near-verbatim from `job_description.docx` / `redrob_signals_doc.docx` / `submission_spec.docx`, on the 0–5 tier scale.
@@ -31,7 +31,7 @@ The Stage-5 interview script. One entry per non-obvious choice: **what** we deci
 ### D5 — Head audit folded into retraining (no override table)
 - **Decision:** multi-pass LLM audit of top-300 → labeled pairs → retrain student → verify head agreement.
 - **Why:** a cached override is a memorized answer for the rows worth 50% of the score — indefensible. Retraining keeps the reproduce command a *model*.
-- **Evidence:** post-retrain lambdarank restored to `artifacts/model/`; **56** `audit_flags.json` (latest run); see [`RESULTS.md`](./RESULTS.md).
+- **Evidence:** post-retrain pointwise winner kept in `artifacts/model/`; **1** `audit_flags.json` entry (latest run); see [`RESULTS.md`](./RESULTS.md).
 
 ### D6 — Grounded-then-verified reasoning, cached
 - **Decision:** fact-sheet → LLM gen → automated verifier → cache by `candidate_id`; composer fallback in `rank.py`.
@@ -41,7 +41,7 @@ The Stage-5 interview script. One entry per non-obvious choice: **what** we deci
 ### D7 — Validation by TREC-style pooled judging
 - **Decision:** label the union of all variants' top-100 (+~50 random); select models on that pool.
 - **Why:** a "spectrum" sample has ~zero overlap with any system's top-100 → noise. With no leaderboard, this is the only valid feedback loop.
-- **Evidence:** pool size **338** unique (latest harness); per-variant table in `artifacts/harness_results.json` and [`RESULTS.md`](./RESULTS.md).
+- **Evidence:** pool size **278** unique (latest harness); per-variant table in `artifacts/harness_results.json` and [`RESULTS.md`](./RESULTS.md).
 
 ---
 
@@ -299,8 +299,8 @@ Additional forensics ground truth recorded (STEP 1):
 - **`scripts/run_pipeline_no_api.py`:** single entry for `01`→`06` + `rank.py` + validator.
 - **LightGBM lambdarank:** query groups capped at **5K** rows (`lambdarank_group_sizes`) — fixes >10K single-group fatal error when labeling pool ~10K.
 - **Labels:** `--keep-inconsistent` → **9,989** teacher labels (pool **9,989** after text scores populated).
-- **Harness (teacher tiers, pool=338):** rules_v0 **0.713**, lambdarank **0.811**, pointwise **0.852** (winner); **deploy lambdarank** for replay anyway (`selection.json` note).
-- **Audit:** `build_audit_flags` + `audit_flags.json` (**56** ids latest); **110** pairwise label adjustments in `offline/05`.
-- **Replay:** **~52 s** / 100K, **251** excluded, validator **PASS**, honeypot top-110 **0** hard.
-- **Tests:** **119** pytest passed.
+- **Harness (teacher tiers, pool=278):** rules_v0 **0.705**, lambdarank **0.744**, pointwise **0.852** (winner); deploy pointwise for replay (`selection.json`).
+- **Audit:** `build_audit_flags` + `audit_flags.json` (**1** id latest); **2** pairwise label adjustments in `offline/05`.
+- **Replay:** **14.64 s** / 100K, **215** excluded, validator **PASS**, honeypot top-110 **0** hard.
+- **Tests:** **122** pytest passed.
 - **Canonical metrics doc:** [`RESULTS.md`](./RESULTS.md). Supersedes 2026-06-18 note on degenerate `dense_score`.

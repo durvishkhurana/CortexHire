@@ -20,6 +20,9 @@ def uncertainty_penalty(feature_row: dict[str, Any]) -> float:
     p += 0.15 * _f("claimed_unverified_ratio")
     p += 0.10 * _f("n_soft_flags")
     p += 0.08 * _f("title_chasing_flag")
+    p += 0.08 * _f("growth_gap_flag")
+    p += 0.07 * _f("production_ownership_gap_flag")
+    p += 0.05 * _f("junior_title_flag")
     p += 0.06 * (1.0 - min(1.0, _f("yoe_fit", 0.5)))
     p += 0.05 * _f("no_recent_ic_flag")
     if _f("has_assessments") < 0.5:

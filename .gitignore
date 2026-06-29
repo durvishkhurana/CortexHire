@@ -20,6 +20,13 @@ artifacts/*
 !artifacts/company_counts.csv
 !artifacts/industry_counts.csv
 !artifacts/skill_counts.csv
+!artifacts/features.parquet
+!artifacts/reasoning.json
+!artifacts/audit_flags.json
+!artifacts/model/
+!artifacts/model/**
+!artifacts/anomaly/
+!artifacts/anomaly/**
 
 # Dev-only notes and agent prompts (not for publication)
 _local/
@@ -33,7 +40,7 @@ data/_txt_*.txt
 
 # Submission scratch
 tmp_submission.csv
-submission.csv
+!submission.csv
 *.tmp.csv
 
 # Python

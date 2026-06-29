@@ -4,7 +4,7 @@ This is the **best-fit solution** for the official challenge given the constrain
 
 ---
 
-## Implementation status (2026-06-21)
+## Implementation status (2026-06-29)
 
 | Item | Status |
 |------|--------|
@@ -13,7 +13,7 @@ This is the **best-fit solution** for the official challenge given the constrain
 | Proxy reranker (BM25 vs JD) | ✅ `step6_proxy` |
 | Parquet score merge (pandas) | ✅ Fixed NaN join bug |
 | Pseudo-teacher + `--keep-inconsistent` | ✅ ~9,989 labels |
-| LightGBM lambdarank (5K query groups) | ✅ Deployed in `artifacts/model/` |
+| LightGBM pointwise + lambdarank comparison | ✅ Pointwise deployed in `artifacts/model/` |
 | `audit_flags.json` | ✅ Written in `offline/05` |
 | `submission.csv` + validator | ✅ |
 | Hosted LLM teacher / reasoning | ⏳ Optional upgrade |
@@ -24,7 +24,7 @@ This is the **best-fit solution** for the official challenge given the constrain
 
 ## Recommended design (one sentence)
 
-**Offline teacher + hybrid retrieval + rich features → LightGBM lambdarank student → CPU replay with live honeypot guards and verified reasoning cache.**
+**Offline teacher + hybrid retrieval + rich features → LightGBM pointwise student → CPU replay with live honeypot guards and verified reasoning cache.**
 
 ---
 
@@ -67,7 +67,7 @@ This is the **best-fit solution** for the official challenge given the constrain
 ### Phase 4 — Student ✅
 
 - LightGBM lambdarank + pointwise, monotone constraints, harness selection.
-- **Deployed:** lambdarank for replay (see `RESULTS.md`).
+- **Deployed:** pointwise harness winner for replay (see `RESULTS.md`).
 
 ### Phase 5 — Safety ✅
 
@@ -79,7 +79,7 @@ This is the **best-fit solution** for the official challenge given the constrain
 
 ### Phase 7 — Replay ✅
 
-- `rank.py` ~52 s / 100K, self-validates.
+- `rank.py` 14.64 s / 100K, self-validates.
 
 ---
 
@@ -104,6 +104,6 @@ This is the **best-fit solution** for the official challenge given the constrain
 
 ## Honest positioning in the deck
 
-- Strength: production-shaped ranker, **~52 s** replay, trap-aware, documented benchmarks.
+- Strength: production-shaped ranker, **14.64 s** replay, trap-aware, documented benchmarks.
 - Limitation: pseudo-teacher ceiling; harness NDCG vs teacher ≠ hidden judge score.
 - Narrative: AI recruiter = JD + semantic fit + signals, not keyword filter.

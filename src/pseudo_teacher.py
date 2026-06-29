@@ -82,6 +82,9 @@ def score_candidate(
         + 0.8 * _f(row, "title_chasing_flag")
         + 0.5 * _f(row, "yoe_junior_flag")
         + 0.3 * _f(row, "n_soft_flags")
+        + 0.9 * _f(row, "growth_gap_flag")
+        + 0.8 * _f(row, "production_ownership_gap_flag")
+        + 0.4 * _f(row, "junior_title_flag")
     )
 
     raw = 0.45 * sem + 0.40 * career + 0.15 * behavioral - penalty

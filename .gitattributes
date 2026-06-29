@@ -1,0 +1,5 @@
+artifacts/features.parquet filter=lfs diff=lfs merge=lfs -text
+artifacts/model/** filter=lfs diff=lfs merge=lfs -text
+artifacts/reasoning.json filter=lfs diff=lfs merge=lfs -text
+artifacts/audit_flags.json filter=lfs diff=lfs merge=lfs -text
+artifacts/anomaly/** filter=lfs diff=lfs merge=lfs -text

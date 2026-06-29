@@ -34,12 +34,12 @@ Recruiters review hundreds of profiles and still miss strong fits because **keyw
 
 Also required at upload (see `submission_metadata_template.yaml` in the bundle):
 
-- Team name, contacts, member list  
-- **GitHub URL**  
-- **Sandbox link** (≤100 candidates; HF Spaces, Streamlit, Docker, Colab, Binder, etc.—§10.5)  
-- AI tools declaration (honest; not penalized)  
-- Compute summary  
-- Optional: ≤200-word methodology summary  
+- Team name, contacts, member list
+- **GitHub URL**
+- **Sandbox link** (≤100 candidates; HF Spaces, Streamlit, Docker, Colab, Binder, etc.—§10.5)
+- AI tools declaration (honest; not penalized)
+- Compute summary
+- Optional: ≤200-word methodology summary
 
 **Repo root:** copy template → `submission_metadata.yaml` and fill fields to match the portal.
 
@@ -126,13 +126,13 @@ Implementation design: [`architecture.md`](./architecture.md). Decisions log: [`
 
 ---
 
-## Our solution status (2026-06-21)
+## Historical solution status (2026-06-21 full local run)
 
 | Portal requirement | Status |
 |--------------------|--------|
-| Reproducible `submission.csv` | ✅ `validate_submission.py` passes |
-| CPU / no-network replay | ✅ ~52 s on 100K |
+| Reproducible `submission.csv` | ✅ `validate_submission.py` passes when private data/artifacts are present |
+| CPU / no-network replay | ✅ 14.64 s on 100K |
 | Honeypot sanity (top 110) | ✅ 0 hard honeypots |
 | GitHub + deck + sandbox | ⏳ fill `submission_metadata.yaml` |
 
-Details: [`RESULTS.md`](./RESULTS.md).
+Details: [`RESULTS.md`](./RESULTS.md). A fresh clone without `data/candidates.jsonl` and generated artifacts is blocked from full replay until those files are restored or rebuilt.

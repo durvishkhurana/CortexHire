@@ -1,8 +1,10 @@
 # Results & benchmarks (reference)
 
-Canonical record of **reproducible runs** on the full **100,000** candidate pool.  
-**Environment:** Windows, Python 3.10.11, CPU-only replay, **no hosted LLM API**.  
+Canonical record of **historical reproducible runs** on the full **100,000** candidate pool.
+**Environment:** macOS local sandbox, Python 3.12.13, CPU-only replay, **no hosted LLM API**.
 **Data:** `data/candidates.jsonl`, reference now = **2026-05-27** (`max(last_active_date)`).
+
+Note: these results are not re-runnable from a fresh clone unless the private organizer data and generated artifacts are present or rebuilt.
 
 **Reproduce:**
 
@@ -12,23 +14,23 @@ python scripts/run_pipeline_no_api.py --candidates data/candidates.jsonl --out s
 
 ---
 
-## Latest full pipeline run (2026-06-21)
+## Latest full pipeline run (2026-06-29)
 
 End-to-end command above (includes `offline/01` feature rebuild). Approximate wall times from logs:
 
 | Step | Script | Duration (approx.) | Notes |
 |------|--------|-------------------|--------|
-| Features | `offline/01_build_features.py` | ~38 s | 100K × 46 columns → `features.parquet` |
-| Text step5 | `offline/02_text_scores.py` | ~2 min | BM25 + **lexical TF-IDF** dense + fusion |
-| Text step6 | `offline/02_text_scores.py` | ~25 s | Proxy **reranker** = BM25 vs full JD text |
+| Features | `offline/01_build_features.py` | ~8 s | 100K × 49 columns → `features.parquet` |
+| Text step5 | `offline/02_text_scores.py` | ~22 s | BM25 + **lexical TF-IDF** dense + fusion |
+| Text step6 | `offline/02_text_scores.py` | ~8 s | Proxy **reranker** = BM25 vs full JD text |
 | Labels | `offline/03_teacher_label.py` | ~2 s | Pool **9,989** ids; **9,989** labels kept (`--keep-inconsistent`) |
-| Train | `offline/04_train_student.py` | ~2 min | Pointwise + lambdarank; harness on pooled top-100s |
-| Audit | `offline/05_head_audit_retrain.py` | ~45 s | **110** pairwise adjustments; **56** audit flags |
-| Rank | `rank.py` | ~52 s | 100K streamed; **251** excluded |
-| Reasoning | `offline/06_reasoning.py` | ~9 s | 100 verified composer strings → `reasoning.json` |
+| Train | `offline/04_train_student.py` | ~22 s | Pointwise + lambdarank; harness on pooled top-100s |
+| Audit | `offline/05_head_audit_retrain.py` | ~14 s | **38** pairwise adjustments; **19** audit flags |
+| Rank | `rank.py` | **14.64 s** | 100K streamed; **215** excluded |
+| Reasoning | `offline/06_reasoning.py` | ~2 s | 100 verified composer strings → `reasoning.json` |
 | Validate | `validate_submission.py` | instant | **Submission is valid.** |
 
-**Total pipeline:** ~8–9 minutes offline + ~1 min per `rank.py` invocation.
+**Total pipeline:** 107.03 s observed for the full no-API command; replay is 14.64 s.
 
 ---
 
@@ -36,7 +38,7 @@ End-to-end command above (includes `offline/01` feature rebuild). Approximate wa
 
 | Metric | Observed | Limit |
 |--------|----------|--------|
-| Wall-clock (100K) | **~52 s** | ≤ 5 min |
+| Wall-clock (100K) | **14.64 s** | ≤ 5 min |
 | GPU at rank time | **No** | CPU only |
 | Network at rank time | **No** | Off |
 | CSV rows | **100** + header | 100 |
@@ -90,19 +92,19 @@ python scripts/honeypot_top100_check.py submission.csv data/candidates.jsonl 110
 
 **Training:** LightGBM **pointwise** + **lambdarank** (5K query groups), 5-seed ensemble, monotone constraints on behavioral features.
 
-**Pooled harness** (`artifacts/harness_results.json`): union of each variant’s top-100 + random floor → **338** judged ids; relevance = pseudo-teacher tiers.
+**Pooled harness** (`artifacts/harness_results.json`): union of each variant’s top-100 + random floor → **278** judged ids; relevance = pseudo-teacher tiers.
 
 | Variant | NDCG@10 | NDCG@50 | MAP | P@10 | Composite* |
 |---------|---------|---------|-----|------|------------|
-| rules_v0 | 0.892 | 0.718 | 0.0119 | 1.000 | **0.713** |
-| **pointwise** (harness winner) | **1.000** | **1.000** | 0.0159 | 1.000 | **0.852** |
-| lambdarank | 1.000 | 0.864 | 0.0085 | 1.000 | 0.811 |
+| rules_v0 | 0.892 | 0.671 | 0.0490 | 1.000 | **0.705** |
+| **pointwise** (harness winner) | **1.000** | **0.973** | 0.0698 | 1.000 | **0.852** |
+| lambdarank | 0.936 | 0.744 | 0.0498 | 0.900 | 0.744 |
 
 \*Composite = `0.50×NDCG@10 + 0.30×NDCG@50 + 0.15×MAP + 0.05×P@10` (organizer formula).
 
-**Deployed for `rank.py`:** **`lambdarank`** ensemble in `artifacts/model/` (see `selection.json` — harness favors pointwise on teacher labels, but lambdarank is used for final ranking).
+**Deployed for `rank.py`:** **`pointwise`** ensemble in `artifacts/model/` (see `selection.json`). This follows the pooled harness winner instead of forcing lambdarank.
 
-**Top lambdarank feature importances (gain):** `product_tenure_months`, `n_soft_flags`, `total_career_months`, `is_product_current`, `max_assessment_score`, `dense_score`.
+**Top pointwise feature importances (gain):** `production_ownership_gap_flag`, `months_since_last_ic`, `n_soft_flags`, `n_hard_flags`, `cv_speech_without_ir_flag`, `is_product_current`.
 
 ---
 
@@ -110,8 +112,8 @@ python scripts/honeypot_top100_check.py submission.csv data/candidates.jsonl 110
 
 | Item | Value |
 |------|--------|
-| Candidates excluded at rank time (latest run) | **251** |
-| `audit_flags.json` entries | **56** |
+| Candidates excluded at rank time (latest run) | **215** |
+| `audit_flags.json` entries | **19** |
 | Hard honeypots in ranks 1–110 | **0** |
 | Calibrated hard-rule rate (pool-wide, prior audit) | ~**0.18%** (see `docs/decisions.md`) |
 
@@ -122,18 +124,18 @@ python scripts/honeypot_top100_check.py submission.csv data/candidates.jsonl 110
 | Field | Value |
 |-------|--------|
 | Rows | 100 |
-| Score range | **5.285** – **7.382** |
+| Score range | **89.694** – **100.957** |
 | Reasoning | Cached `artifacts/reasoning.json` (composer + verifier) |
 
 **Rank 1–5 (candidate_id):**
 
 | Rank | ID | Score |
 |------|-----|------:|
-| 1 | CAND_0005883 | 7.382 |
-| 2 | CAND_0038716 | 7.326 |
-| 3 | CAND_0044804 | 7.294 |
-| 4 | CAND_0063585 | 7.285 |
-| 5 | CAND_0014209 | 7.281 |
+| 1 | CAND_0027801 | 100.957 |
+| 2 | CAND_0041669 | 100.561 |
+| 3 | CAND_0061257 | 100.522 |
+| 4 | CAND_0006567 | 100.511 |
+| 5 | CAND_0018549 | 100.437 |
 
 Top ranks skew toward **product/fintech/edtech** employers (e.g. Meesho, Paytm, CRED, Razorpay, Zomato) with retrieval/vector/IR skill evidence in reasoning (grounded in profiles).
 
@@ -145,7 +147,7 @@ Top ranks skew toward **product/fintech/edtech** employers (e.g. Meesho, Paytm, 
 python -m pytest -q
 ```
 
-**119 tests** passed (last verified with full artifacts present).
+**122 tests** passed (last verified with full artifacts present).
 
 ---
 

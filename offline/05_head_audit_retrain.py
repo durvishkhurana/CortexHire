@@ -148,7 +148,7 @@ def main() -> int:
     train_mod.train_heads(X, y_score, y_tier, feature_names, args.artifacts)
     log.info("retrained student after audit augmentation")
 
-    # Restore harness-selected head in artifacts/model/ (train_heads overwrites both).
+    # Restore harness-selected head in artifacts/model/ when it is not already there.
     import shutil
 
     sel_path = os.path.join(args.artifacts, "model", "selection.json")

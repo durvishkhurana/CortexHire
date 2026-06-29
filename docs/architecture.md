@@ -186,14 +186,14 @@ stream-parse JSONL (orjson, project only needed fields)      # ~30–60 s, never
 
 Full tables, tier histograms, and reproduce command: **[`RESULTS.md`](./RESULTS.md)**.
 
-| Area | Latest (2026-06-21) |
+| Area | Latest (2026-06-29) |
 |------|---------------------|
-| Replay `rank.py` | **~52 s** / 100K, **251** excluded, validator **PASS** |
+| Replay `rank.py` | **14.64 s** / 100K, **215** excluded, validator **PASS** |
 | Text scores | BM25 + **TF-IDF** dense + fusion + BM25-JD proxy reranker (100K non-null) |
 | Labels | **9,989** pseudo-teacher labels; pool from hybrid retrieval |
-| Deployed model | LightGBM **lambdarank** (5-seed ensemble) |
+| Deployed model | LightGBM **pointwise** (5-seed ensemble) |
 | Harness (teacher tiers) | Pointwise composite **0.852**; lambdarank **0.811**; rules **0.713** |
 | Honeypots | **0** in top 110 (hard check) |
-| Tests | **119** pytest passed |
+| Tests | **122** pytest passed |
 
 **No-API orchestration:** `python scripts/run_pipeline_no_api.py --candidates data/candidates.jsonl --out submission.csv`

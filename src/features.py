@@ -89,6 +89,28 @@ _MGMT_TITLE_WORDS = (
     "founder",
 )
 _WORD_TOKEN_RE = re.compile(r"[a-z][a-z\-]+")
+_GROWTH_GAP_PHRASES = (
+    "looking to grow",
+    "grow into",
+    "transitioning toward",
+    "transition toward",
+    "interested in transitioning",
+    "still building depth",
+    "building depth",
+    "limited professional experience",
+    "professional experience there is limited",
+    "learning modern ml",
+)
+_PRODUCTION_GAP_PHRASES = (
+    "production deployment was handled by",
+    "deployment was handled by",
+    "more on the modeling side than the productionization",
+    "pure ml side",
+    "not the model itself",
+    "lightweight deployment",
+    "side projects",
+    "self-directed ml projects",
+)
 
 # OFFLINE-only feature columns — filled from the parquet store at replay time,
 # NOT computed in rank.py (rule #6). Placeholders are NaN here.
@@ -146,6 +168,9 @@ SCHEMA_FEATURES: list[str] = [
     "no_recent_ic_flag",  # 1 if months_since_last_ic > 18 (JD "writes code")
     "cv_speech_skill_count",  # CV/speech/robotics skills (JD down-rank)
     "cv_speech_without_ir_flag",  # CV/speech present AND no NLP/IR/retrieval evidence
+    "growth_gap_flag",  # says they are transitioning / still building depth
+    "production_ownership_gap_flag",  # modeling-only, deployment owned elsewhere
+    "junior_title_flag",  # current title says junior (senior JD risk)
     # --- coherence (honeypot signal, also a learned feature) ---
     "n_hard_flags",  # # hard consistency violations
     "n_soft_flags",  # # soft consistency flags
@@ -412,6 +437,21 @@ def build_feature_row(
     row["cv_speech_without_ir_flag"] = (
         1.0 if (cv_count > 0 and not has_ir_nlp) else 0.0
     )
+    profile_text = " ".join(
+        str(record.get(k, ""))
+        for k in (F.HEADLINE, F.SUMMARY, F.CURRENT_TITLE)
+    ).lower()
+    career_text = " ".join(
+        str(r.get(CareerF.DESCRIPTION, "")) for r in career
+    ).lower()
+    all_text = f"{profile_text} {career_text}"
+    row["growth_gap_flag"] = _phrase_hit(all_text, _GROWTH_GAP_PHRASES)
+    row["production_ownership_gap_flag"] = _phrase_hit(
+        all_text, _PRODUCTION_GAP_PHRASES
+    )
+    row["junior_title_flag"] = (
+        1.0 if "junior" in str(record.get(F.CURRENT_TITLE, "")).lower() else 0.0
+    )
 
     # --- coherence (honeypot signal as a learned feature) ---
     assessment = honeypot.run_consistency_suite(
@@ -423,6 +463,11 @@ def build_feature_row(
     row["n_soft_flags"] = float(assessment.soft_count)
 
     return row
+
+
+def _phrase_hit(text: str, phrases: tuple[str, ...]) -> float:
+    """1.0 if any lowercase phrase appears in text."""
+    return 1.0 if any(p in text for p in phrases) else 0.0
 
 
 def _role_is_ic(role: dict[str, Any]) -> bool:

@@ -128,6 +128,19 @@ def test_coherence_flags_in_features():
     assert rows[C1]["n_hard_flags"] == 0.0
 
 
+def test_growth_and_production_gap_flags():
+    rec = parse.load_pool(str(FIXTURE))[0]
+    rec[parse.F.CURRENT_TITLE] = "Junior ML Engineer"
+    rec[parse.F.SUMMARY] = "I am still building depth and looking to grow into ML systems."
+    rec[parse.F.CAREER_HISTORY][0][parse.CareerF.DESCRIPTION] = (
+        "Pure ML side of the work; production deployment was handled by the platform team."
+    )
+    row = ft.build_feature_row(rec, now=NOW, founding_years=FOUNDING)
+    assert row["growth_gap_flag"] == 1.0
+    assert row["production_ownership_gap_flag"] == 1.0
+    assert row["junior_title_flag"] == 1.0
+
+
 def test_build_feature_frame():
     recs = parse.load_pool(str(FIXTURE))
     df = ft.build_feature_frame(recs, now=NOW, founding_years=FOUNDING)

@@ -1,161 +1,132 @@
-# Intelligent Candidate Discovery & Ranking
+# CortexHire — Intelligent Candidate Discovery & Ranking
 
-**Data & AI Challenge** — Redrob / India Runs: rank **100,000** candidates for a fixed **Senior AI Engineer** role and deliver a recruiter-trustworthy **top-100** shortlist (scores + grounded reasoning).
+Redrob / India Runs **Data & AI Challenge** solution for ranking **100,000** candidates against the fixed **Senior AI Engineer — Founding Team** JD.
 
-Organizers ask for systems that **understand the JD**, judge **semantic fit beyond keywords**, and integrate **behavioral signals**—with **no prescribed architecture**. At submission time, ranking must replay on **CPU only**, **no network**, **≤5 minutes**, **≤16 GB RAM** (see [`docs/CHALLENGE_BRIEF.md`](docs/CHALLENGE_BRIEF.md)).
+The goal is not keyword matching. This repo builds a deterministic, CPU-only ranking system that favors recruiter-grade evidence: shipped retrieval/ranking/recommendation work, product-company context, seniority fit, availability signals, and honeypot safety.
 
-```bash
-python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv
-```
+## Submission Status
 
-This runs the replay pipeline and validates with the organizer’s `validate_submission.py`.
+Latest local full run: **2026-06-29** on the organizer `data/candidates.jsonl`.
 
----
+| Check | Result |
+|---|---:|
+| Ranked CSV | `submission.csv`, 100 rows + header |
+| Organizer validator | **PASS** |
+| Replay time | **14.64 s** on 100K candidates |
+| Replay constraints | CPU-only, no network, <16 GB target |
+| Honeypot hard check | **0** hard honeypots in top 110 |
+| Deployed model | LightGBM **pointwise** ensemble |
+| Tests | **122 passed** |
 
-## What to submit (portal)
+Top-20 sanity after the final run: all top 20 candidates are in the JD’s 5-9 YoE band, no weak “transitioning/still building depth” profiles, and 0 hard honeypots in the top-110 margin.
 
-| Deliverable | Notes |
-|-------------|--------|
-| **GitHub repo** | This project; reproducible `submission.csv` |
-| **Deck (PPT → PDF)** | What you built, why, how it works |
-| **Ranked CSV** | 100 rows + header; `validate_submission.py` clean |
+## Reproduce
 
-Also: team metadata, **sandbox URL** (≤100 candidates) — mirror [`submission_metadata.yaml`](submission_metadata.yaml) to the bundle’s `submission_metadata_template.yaml`.
-
----
-
-## Prerequisites
-
-- **Python 3.10+** (3.11 recommended)
-- Unzip the organizer bundle; copy inputs into `data/` (see [`data/README.md`](data/README.md)):
-  - `candidates.jsonl` (~465 MB; or `.jsonl.gz` per some bundles)
-  - docx spec files + `candidate_schema.json`, `sample_candidates.json`
-- **Pre-built artifacts** under `artifacts/` for full quality (feature store, model, reasoning). See [Building artifacts](#building-artifacts-offline).
+Install pinned dependencies:
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate   # Windows
+source .venv/bin/activate   # macOS/Linux
+# .venv\Scripts\activate    # Windows
 pip install -r requirements.txt
 ```
 
----
-
-## Quick start (submission CSV)
-
-1. Copy `candidates.jsonl` (and spec files) into `data/`.
-2. Ensure `artifacts/` contains trained model and supporting files (or run the offline pipeline below).
-3. Generate the submission:
+Fast replay, when `data/candidates.jsonl` and `artifacts/` are present:
 
 ```bash
 python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv --artifacts ./artifacts
-```
-
-4. Validate and honeypot sanity check:
-
-```bash
 python validate_submission.py submission.csv
 python scripts/honeypot_top100_check.py submission.csv data/candidates.jsonl 110
 ```
 
-> `sample_submission.csv` in the organizer bundle is **format-only** (often bad rankings on purpose). Do not copy it.
-
----
-
-## How it works
-
-| Phase | Where | What |
-|--------|--------|------|
-| **Offline** | `offline/*.py` | Stream-parse pool → features; BM25 / embeddings / reranker; teacher labels; LightGBM student; reasoning cache |
-| **Replay** | `rank.py` | Two-pass streaming JSONL, live honeypot checks, join features, ensemble predict, sort, reasoning, write CSV |
-
-- Challenge & rules: [`docs/CHALLENGE_BRIEF.md`](docs/CHALLENGE_BRIEF.md)  
-- Design: [`docs/architecture.md`](docs/architecture.md)  
-- Engineering log: [`docs/decisions.md`](docs/decisions.md)  
-- **Results (latest run):** [`docs/RESULTS.md`](docs/RESULTS.md)  
-- Target / gaps: [`docs/RECOMMENDED_APPROACH.md`](docs/RECOMMENDED_APPROACH.md)
-
----
-
-## Latest results (summary)
-
-Full tables and reproduce notes: **[`docs/RESULTS.md`](docs/RESULTS.md)**.
-
-| Check | Result |
-|--------|--------|
-| Full pipeline | `python scripts/run_pipeline_no_api.py` → **valid** `submission.csv` |
-| Replay on 100K | **~52 s**, **251** excluded, CPU / no network |
-| Honeypots (top 110) | **0** hard |
-| Labeling pool | **9,989** pseudo-teacher labels |
-| Deployed ranker | LightGBM **lambdarank** (`artifacts/model/`) |
-| Tests | **119** passed (`pytest -q`) |
-
----
-
-## Building artifacts (offline)
-
-Requires `data/candidates.jsonl`. **No hosted LLM API** — default text scores use BM25 + TF-IDF (`--dense-backend lexical`).
-
-**One command (full rebuild + `submission.csv`):**
+Full no-API rebuild from organizer data:
 
 ```bash
 python scripts/run_pipeline_no_api.py --candidates data/candidates.jsonl --out submission.csv
 ```
 
-**Manual steps** (optional GPU/HuggingFace for stronger embeddings — not required):
+Do **not** use `sample_submission.csv` as a ranking source. It is format-only.
 
-```bash
-python offline/01_build_features.py --candidates data/candidates.jsonl --artifacts artifacts
-python offline/02_text_scores.py --mode step5 --candidates data/candidates.jsonl --artifacts artifacts --dense-backend lexical --device cpu
-python offline/02_text_scores.py --mode step6_proxy --candidates data/candidates.jsonl --artifacts artifacts
-python offline/03_teacher_label.py --artifacts artifacts --keep-inconsistent
-python offline/04_train_student.py --artifacts artifacts
-python offline/05_head_audit_retrain.py --artifacts artifacts
-python rank.py --candidates data/candidates.jsonl --out artifacts/submission_final.csv
-python offline/06_reasoning.py --candidates data/candidates.jsonl --artifacts artifacts --ranking artifacts/submission_final.csv
+## Required Local Inputs
+
+The organizer bundle is private/large and is not committed. Place these under `data/`:
+
+- `candidates.jsonl` — 100,000 candidate records
+- `candidate_schema.json`
+- `job_description.docx`
+- `submission_spec.docx`
+- `redrob_signals_doc.docx`
+- `sample_candidates.json`
+
+For full-quality replay, keep generated artifacts under `artifacts/`:
+
+- `features.parquet`
+- `model/`
+- `reasoning.json`
+- `audit_flags.json`
+- `founding_years.csv`
+
+Large replay artifacts are configured for Git LFS via `.gitattributes`.
+
+## How It Works
+
+| Phase | Files | Purpose |
+|---|---|---|
+| Feature build | `offline/01_build_features.py`, `src/features.py` | Career evidence, product-company context, seniority fit, behavioral signals, honeypot/coherence flags |
+| Text scoring | `offline/02_text_scores.py` | BM25 + TF-IDF dense retrieval + proxy reranker against the fixed JD |
+| Teacher labels | `offline/03_teacher_label.py`, `src/pseudo_teacher.py` | Deterministic 0-5 rubric labels over a high-recall pool |
+| Student model | `offline/04_train_student.py`, `src/model.py` | LightGBM pointwise/lambdarank comparison; deploys harness winner |
+| Audit | `offline/05_head_audit_retrain.py` | Pairwise head audit, audit flags, retrain |
+| Reasoning | `offline/06_reasoning.py`, `src/reasoning.py` | Grounded reasoning cache for final 100 |
+| Replay | `rank.py` | Stream candidates, join artifacts, exclude honeypots, score, sort, write and self-validate CSV |
+
+## Recruiter-Fit Signals
+
+The model is designed around the challenge brief:
+
+- Rewards shipped search, retrieval, recommendation, ranking, vector DB, evaluation, and strong Python evidence.
+- Prefers product-company career evidence over bare skill-list stuffing.
+- Down-ranks services-only, title-chasing, stale/no-recent-IC, CV/speech-without-IR, junior/extreme-seniority mismatch, and “still transitioning” profiles.
+- Uses Redrob behavioral signals for availability and responsiveness.
+- Hard-excludes internally impossible profiles through live honeypot checks.
+
+## Results
+
+See [docs/RESULTS.md](docs/RESULTS.md) for full timings, harness metrics, feature importance, score range, and final top-5 IDs.
+
+Current harness winner:
+
+| Variant | Composite |
+|---|---:|
+| rules baseline | 0.705 |
+| lambdarank | 0.744 |
+| **pointwise** | **0.852** |
+
+The harness uses pseudo-teacher labels, so it is a relative model-selection signal, not a claim about hidden judge labels.
+
+## Repository Layout
+
+```text
+rank.py                 # deterministic replay entry point
+validate_submission.py  # organizer CSV validator
+submission_metadata.yaml
+requirements.txt
+src/                    # parser, features, model, honeypot, reasoning
+offline/                # artifact build and training pipeline
+scripts/                # full pipeline + honeypot top-110 check
+tests/
+docs/
+data/                   # local organizer inputs, gitignored
+artifacts/              # generated replay artifacts, LFS/gitignored
 ```
 
-Set `HF_HOME=./artifacts/hf_cache` when downloading Hugging Face models.
+## Submission Files
 
-Large binaries (`features.parquet`, `model/`, `reasoning.json`) should ship via **Git LFS** for Stage 3 (no network in sandbox).
+- `submission.csv` — final ranked output
+- `submission_metadata.yaml` — fill team/contact/sandbox placeholders before upload
+- PDF deck — explain approach, architecture, results, and limitations
+- GitHub repo — include code plus required LFS artifacts or rebuild instructions
 
----
+## Transparency
 
-## Repository layout
-
-```
-├── rank.py                 # Entry point (replay)
-├── validate_submission.py  # Organizer CSV validator (matches bundle)
-├── submission_metadata.yaml
-├── requirements.txt
-├── src/                    # Parsing, features, model, honeypot, reasoning
-├── offline/                # Offline training and feature pipelines
-├── tests/
-├── scripts/                # e.g. honeypot check
-├── docs/                   # Brief, architecture, rubric, recommendations
-├── data/                   # Organizer inputs (local only)
-└── artifacts/              # Precomputed outputs (LFS)
-```
-
----
-
-## Tests
-
-```bash
-python -m pytest -q
-```
-
----
-
-## Portal checklist
-
-- [ ] `submission.csv` — 100 rows + header, passes `validate_submission.py` (**done** — see [`docs/RESULTS.md`](docs/RESULTS.md))
-- [ ] **PDF deck** — approach, architecture, results
-- [ ] GitHub URL — this repository
-- [ ] `submission_metadata.yaml` — aligned with portal + template
-- [ ] **Sandbox** — run ranker on ≤100 candidates (HF Spaces, Streamlit, Docker, etc.)
-
----
-
-## License
-
-MIT — see repository license file if present; update for your team as needed.
+`rank.py` is deterministic and offline at replay time: no hosted LLMs, no hosted APIs, no network calls. AI assistance used during development is declared in `submission_metadata.yaml`; it is not used by the replay command.

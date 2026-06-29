@@ -1,42 +1,51 @@
 # submission_metadata.yaml — Intelligent Candidate Discovery & Ranking
 # Copy fields to the portal; align with data/submission_metadata_template.yaml
 
-team_name: "TODO"
+team_name: "TODO_TEAM_NAME"
 primary_contact:
-  name: "TODO"
-  email: "TODO"
-  phone: "+91-XXXXXXXXXX"
+  name: "TODO_PRIMARY_CONTACT_NAME"
+  email: "TODO_PRIMARY_CONTACT_EMAIL"
+  phone: "TODO_PHONE"
 
 team_members:
-  - name: "TODO"
-    email: "TODO"
+  - name: "TODO_TEAM_MEMBER_NAME"
+    email: "TODO_TEAM_MEMBER_EMAIL"
     role: "ML Engineer"
 
-github_repo: "https://github.com/TODO/TODO"
-sandbox_link: "TODO"
+github_repo: "https://github.com/durvishkhurana/CortexHire"
+sandbox_link: "TODO_SANDBOX_LINK"
 
-reproduce_command: "python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv"
+reproduce_command: "python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv --artifacts ./artifacts"
 validate_command: "python validate_submission.py submission.csv"
 
 compute:
-  platform: "Windows 11 / local"
+  platform: "macOS local sandbox"
   cpu_cores: 8
   ram_gb: 16
-  python_version: "3.10.11"
-  os: "Windows"
+  python_version: "3.12.13"
+  os: "macOS"
   uses_gpu_for_inference: false
   has_network_during_ranking: false
   pre_computation_required: true
-  pre_computation_time_minutes: 120
+  pre_computation_time_minutes: 2
+
+ai_tools_used:
+  - "OpenAI Codex"
+
+ai_usage_summary: |
+  Used OpenAI Codex as an engineering assistant for repository audit,
+  debugging, documentation consistency, and small code/test edits. The ranking
+  pipeline itself is deterministic and offline: `rank.py` does not call hosted
+  LLMs, hosted APIs, or the network during replay.
 
 methodology_summary: |
   Offline feature store over 100K profiles (career evidence, company lexicon,
   behavioral signals, honeypot consistency flags). Hybrid lexical retrieval
   (BM25 + TF-IDF dense + JD BM25 proxy reranker) without hosted APIs.
-  Pseudo-teacher rubric labels a high-recall pool; LightGBM lambdarank student
+  Pseudo-teacher rubric labels a high-recall pool; LightGBM pointwise student
   with monotone behavioral constraints and seed ensemble. rank.py streams the
   pool, applies honeypot triple-guard, predicts, attaches verified reasoning
-  cache. Replay ~52s/100K CPU. Metrics: docs/RESULTS.md.
+  cache. Replay 14.64s/100K CPU. Metrics: docs/RESULTS.md.
 
 declarations:
   read_submission_spec: true
@@ -47,7 +56,7 @@ declarations:
 
 # Legacy block (repo tooling)
 submission:
-  reproduce_command: "python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv"
+  reproduce_command: "python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv --artifacts ./artifacts"
   validate_command: "python validate_submission.py submission.csv"
   python_version: "3.10"
   dependencies: requirements.txt

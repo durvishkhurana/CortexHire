@@ -11,6 +11,17 @@ def test_uncertainty_penalty_increases_with_risk():
     assert t20.uncertainty_penalty(high) > t20.uncertainty_penalty(low)
 
 
+def test_uncertainty_penalty_includes_seniority_gap_flags():
+    low = {"yoe_fit": 1.0}
+    high = {
+        "yoe_fit": 1.0,
+        "growth_gap_flag": 1.0,
+        "production_ownership_gap_flag": 1.0,
+        "junior_title_flag": 1.0,
+    }
+    assert t20.uncertainty_penalty(high) > t20.uncertainty_penalty(low)
+
+
 def test_apply_top20_reorders_band_only():
     ranked = [(f"CAND_{i:07d}", 1.0 - i * 0.001) for i in range(30)]
     feats = {
