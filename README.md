@@ -31,6 +31,13 @@ source .venv/bin/activate   # macOS/Linux
 pip install -r requirements.txt
 ```
 
+After cloning the repo, pull LFS artifacts if they are not already present:
+
+```bash
+git lfs install
+git lfs pull
+```
+
 Fast replay, when `data/candidates.jsonl` and `artifacts/` are present:
 
 ```bash
@@ -64,6 +71,7 @@ For full-quality replay, keep generated artifacts under `artifacts/`:
 - `model/`
 - `reasoning.json`
 - `audit_flags.json`
+- `anomaly/`
 - `founding_years.csv`
 
 Large replay artifacts are configured for Git LFS via `.gitattributes`.

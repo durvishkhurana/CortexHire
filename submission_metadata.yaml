@@ -58,7 +58,7 @@ declarations:
 submission:
   reproduce_command: "python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv --artifacts ./artifacts"
   validate_command: "python validate_submission.py submission.csv"
-  python_version: "3.10"
+  python_version: "3.12.13"
   dependencies: requirements.txt
   output_csv: submission.csv
 
@@ -69,6 +69,7 @@ artifacts:
     - artifacts/model/
     - artifacts/reasoning.json
     - artifacts/audit_flags.json
+    - artifacts/anomaly/
     - artifacts/founding_years.csv
 
 reproducibility:
