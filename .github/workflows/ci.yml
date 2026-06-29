@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test submission package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Validate final CSV
+        run: python validate_submission.py submission.csv
+
+      - name: Validate metadata and sandbox notebook
+        run: |
+          python -c "import json, yaml; yaml.safe_load(open('submission_metadata.yaml', encoding='utf-8')); json.load(open('sandbox_demo.ipynb', encoding='utf-8'))"
+          python -c "from pathlib import Path; text = Path('submission_metadata.yaml').read_text(encoding='utf-8'); assert 'TODO_' not in text and 'YOUR_' not in text"
+
+      - name: Run sandbox sample
+        run: python rank.py --candidates tests/fixtures/synthetic_candidates.jsonl --out /tmp/sandbox_submission.csv --artifacts /tmp/no_artifacts
