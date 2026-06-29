@@ -147,7 +147,7 @@ Top ranks skew toward **product/fintech/edtech** employers (e.g. Meesho, Paytm, 
 python -m pytest -q
 ```
 
-**122 tests** passed (last verified with full artifacts present).
+**123 tests** passed (last verified with full artifacts present).
 
 ---
 

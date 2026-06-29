@@ -16,7 +16,7 @@ Latest local full run: **2026-06-29** on the organizer `data/candidates.jsonl`.
 | Replay constraints | CPU-only, no network, <16 GB target |
 | Honeypot hard check | **0** hard honeypots in top 110 |
 | Deployed model | LightGBM **pointwise** ensemble |
-| Tests | **122 passed** |
+| Tests | **123 passed** |
 
 Top-20 sanity after the final run: all top 20 candidates are in the JD’s 5-9 YoE band, no weak “transitioning/still building depth” profiles, and 0 hard honeypots in the top-110 margin.
 
