@@ -131,7 +131,7 @@ artifacts/              # generated replay artifacts, LFS/gitignored
 ## Submission Files
 
 - `submission.csv` — final ranked output
-- `submission_metadata.yaml` — fill team/contact/sandbox placeholders before upload
+- `submission_metadata.yaml` — team/contact details plus Colab sandbox link
 - PDF deck — explain approach, architecture, results, and limitations
 - GitHub repo — include code plus required LFS artifacts or rebuild instructions
 

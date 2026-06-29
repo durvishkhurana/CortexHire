@@ -1,19 +1,28 @@
 # submission_metadata.yaml — Intelligent Candidate Discovery & Ranking
 # Copy fields to the portal; align with data/submission_metadata_template.yaml
 
-team_name: "TODO_TEAM_NAME"
+team_name: "Smriti"
 primary_contact:
-  name: "TODO_PRIMARY_CONTACT_NAME"
-  email: "TODO_PRIMARY_CONTACT_EMAIL"
-  phone: "TODO_PHONE"
+  name: "Gurnoor Singh Pannu"
+  email: "gpannu_be23@thapar.edu"
+  phone: "+91-9465877874"
 
 team_members:
-  - name: "TODO_TEAM_MEMBER_NAME"
-    email: "TODO_TEAM_MEMBER_EMAIL"
+  - name: "Gurnoor Singh Pannu"
+    email: "gpannu_be23@thapar.edu"
+    role: "Team Lead"
+  - name: "Durvish Khurana"
+    email: "durvishkhurana60@gmail.com"
+    role: "ML Engineer"
+  - name: "Simran Kaur"
+    email: "skaur8_be23@thapar.edu"
+    role: "ML Engineer"
+  - name: "Saksham Mittal"
+    email: "smittal2_be23@thapar.edu"
     role: "ML Engineer"
 
 github_repo: "https://github.com/durvishkhurana/CortexHire"
-sandbox_link: "TODO_SANDBOX_LINK"
+sandbox_link: "https://colab.research.google.com/github/durvishkhurana/CortexHire/blob/main/sandbox_demo.ipynb"
 
 reproduce_command: "python rank.py --candidates ./data/candidates.jsonl --out ./submission.csv --artifacts ./artifacts"
 validate_command: "python validate_submission.py submission.csv"
