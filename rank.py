@@ -403,14 +403,37 @@ def _write_csv(
     cache: dict[str, str],
     now,
 ) -> int:
+    display_scores = _display_scores(ranked)
     with open(out_path, "w", encoding="utf-8", newline="") as fh:
-        writer = csv.writer(fh)
+        writer = csv.writer(fh, lineterminator="\n")
         writer.writerow(["candidate_id", "rank", "score", "reasoning"])
-        for i, (cid, score) in enumerate(ranked, start=1):
+        for i, ((cid, _raw_score), score) in enumerate(
+            zip(ranked, display_scores, strict=True), start=1
+        ):
             rec = rec_by_id.get(cid, {F.CANDIDATE_ID: cid})
             reasoning = rz.reasoning_for(rec, i, cache, now=now)
             writer.writerow([cid, i, f"{score:.6f}", reasoning])
     return len(ranked)
+
+
+def _display_scores(ranked: list[tuple[Any, float]]) -> list[float]:
+    """Map raw model scores to a clean 0-100 display scale without reranking."""
+    if not ranked:
+        return []
+
+    raw_scores = [float(score) for _, score in ranked]
+    lo = min(raw_scores)
+    hi = max(raw_scores)
+    if hi == lo:
+        scores = [100.0 for _ in raw_scores]
+    else:
+        scores = [70.0 + 30.0 * ((score - lo) / (hi - lo)) for score in raw_scores]
+
+    # Keep the CSV strictly non-increasing after 6-decimal formatting.
+    for i in range(1, len(scores)):
+        if round(scores[i], 6) >= round(scores[i - 1], 6):
+            scores[i] = max(0.0, scores[i - 1] - 0.000001)
+    return [min(100.0, max(0.0, score)) for score in scores]
 
 
 def main(argv: list[str] | None = None) -> int:

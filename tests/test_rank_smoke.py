@@ -91,5 +91,15 @@ def test_scores_non_increasing_and_six_dp(tmp_path):
     _, data = _read(out)
     scores = [float(r[2]) for r in data]
     assert scores == sorted(scores, reverse=True)
+    assert all(0.0 <= score <= 100.0 for score in scores)
     for r in data:
         assert len(r[2].split(".")[1]) == 6  # exactly 6 decimal places
+
+
+def test_display_scores_are_bounded_and_ordered():
+    scores = rank._display_scores(
+        [("CAND_0000001", 101.0), ("CAND_0000002", 100.5), ("CAND_0000003", 89.0)]
+    )
+    assert scores[0] == 100.0
+    assert scores[-1] == 70.0
+    assert scores == sorted(scores, reverse=True)

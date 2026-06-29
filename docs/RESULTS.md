@@ -124,18 +124,18 @@ python scripts/honeypot_top100_check.py submission.csv data/candidates.jsonl 110
 | Field | Value |
 |-------|--------|
 | Rows | 100 |
-| Score range | **89.694** – **100.957** |
+| Score range | **70.000** – **100.000** |
 | Reasoning | Cached `artifacts/reasoning.json` (composer + verifier) |
 
 **Rank 1–5 (candidate_id):**
 
 | Rank | ID | Score |
 |------|-----|------:|
-| 1 | CAND_0027801 | 100.957 |
-| 2 | CAND_0041669 | 100.561 |
-| 3 | CAND_0061257 | 100.522 |
-| 4 | CAND_0006567 | 100.511 |
-| 5 | CAND_0018549 | 100.437 |
+| 1 | CAND_0027801 | 100.000 |
+| 2 | CAND_0041669 | 98.945 |
+| 3 | CAND_0061257 | 98.840 |
+| 4 | CAND_0006567 | 98.813 |
+| 5 | CAND_0018549 | 98.614 |
 
 Top ranks skew toward **product/fintech/edtech** employers (e.g. Meesho, Paytm, CRED, Razorpay, Zomato) with retrieval/vector/IR skill evidence in reasoning (grounded in profiles).
 
