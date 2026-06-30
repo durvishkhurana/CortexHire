@@ -52,6 +52,24 @@ Full no-API rebuild from organizer data:
 python scripts/run_pipeline_no_api.py --candidates data/candidates.jsonl --out submission.csv
 ```
 
+Optional Docker smoke run:
+
+```bash
+docker build -t cortexhire .
+docker run --rm cortexhire
+```
+
+Full replay with local organizer data mounted:
+
+```bash
+docker run --rm \
+  -v "$PWD/data:/app/data:ro" \
+  -v "$PWD/artifacts:/app/artifacts:ro" \
+  -v "$PWD:/out" \
+  cortexhire \
+  python rank.py --candidates /app/data/candidates.jsonl --out /out/submission.csv --artifacts /app/artifacts
+```
+
 Do **not** use `sample_submission.csv` as a ranking source. It is format-only.
 
 ## Required Local Inputs
