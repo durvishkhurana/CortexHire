@@ -1,7 +1,5 @@
 # CortexHire — Intelligent Candidate Discovery & Ranking
 
-Redrob / India Runs **Data & AI Challenge** solution for ranking **100,000** candidates against the fixed **Senior AI Engineer — Founding Team** JD.
-
 The goal is not keyword matching. This repo builds a deterministic, CPU-only ranking system that favors recruiter-grade evidence: shipped retrieval/ranking/recommendation work, product-company context, seniority fit, availability signals, and honeypot safety.
 
 ## Submission Status
